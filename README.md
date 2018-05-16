@@ -23,5 +23,5 @@ make BOARD=STM32F7DISC deploy-stlink
 Note that MicroPython is licenced under the MIT license, and all contributions should follow this license.  
 And LCD module is based on BSP driver by STMicroelectronics,  
 its library licences is under  
-* STMicro Mix Liberty + OSS + 3rd- party V1 - SOFTWARE LICENSE AGREEMENT 
+* STMicro Mix Liberty + OSS + 3rd- party V1 - SOFTWARE LICENSE AGREEMENT  
   http://www.st.com/resource/en/license_agreement/dm00218346.pdf
