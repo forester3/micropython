@@ -1,7 +1,6 @@
 # MicroPython branch: f7disc-lcd  
 
-This branch contains LCD module to control STM32F746G-discovery only.
-
+This branch contains LCD and touch panel module on STM32F746G-discovery.  
 Current supported board is only STM32F746G-Discovery.
 
 ## How to build
@@ -21,7 +20,10 @@ make BOARD=STM32F7DISC deploy-stlink
 ```
 
 Note that MicroPython is licenced under the MIT license, and all contributions should follow this license.  
-And LCD module is based on BSP driver by STMicroelectronics,  
+LCD and touch panel module is based on BSP driver by STMicroelectronics,  
 its library licences is under  
 * STMicro Mix Liberty + OSS + 3rd- party V1 - SOFTWARE LICENSE AGREEMENT  
   http://www.st.com/resource/en/license_agreement/dm00218346.pdf
+
+## Module feature  
+ Module feature can be found my wiki pages: https://github.com/forester3/micropython/wiki
