@@ -131,6 +131,11 @@ LCD_DrawPropTypeDef DrawProp[MAX_LAYER_NUMBER];      //remove static
   * @}
   */
 
+void DMA2D_IRQHandler(void)
+{
+	HAL_DMA2D_IRQHandler(&hDma2dHandler);
+}
+
 /** @defgroup STM32746G_DISCOVERY_LCD_Private_FunctionPrototypes STM32746G_DISCOVERY_LCD Private Function Prototypes
   * @{
   */
@@ -142,14 +147,41 @@ static void LL_ConvertLineToARGB8888(void * pSrc, void *pDst, uint32_t xSize, ui
   * @}
   */ 
 
+uint8_t LCD_scroll( int32_t xstep, int32_t ystep )
+{
+// from modframebuf.c
+    int32_t sx, y, xend, yend, dy, dx;
+    if (xstep < 0) {
+        sx = 0;
+        xend = hLtdcHandler.LayerCfg->ImageWidth + xstep;
+        dx = 1;
+    } else {
+        sx = hLtdcHandler.LayerCfg->ImageWidth - 1;
+        xend = xstep - 1;
+        dx = -1;
+    }
+    if (ystep < 0) {
+        y = 0;
+        yend = hLtdcHandler.LayerCfg->ImageHeight + ystep;
+        dy = 1;
+    } else {
+        y = hLtdcHandler.LayerCfg->ImageHeight - 1;
+        yend = ystep - 1;
+        dy = -1;
+    }
+    for (; y != yend; y += dy) {
+        for (int x = sx; x != xend; x += dx) {
+            BSP_LCD_DrawPixel( x, y, BSP_LCD_ReadPixel( x - xstep, y - ystep));
+        }
+    }
+// end from modframebuf.c
+    return LCD_OK;
+}
+
 /** @defgroup STM32746G_DISCOVERY_LCD_Exported_Functions STM32746G_DISCOVERY_LCD Exported Functions
   * @{
   */
 
-void DMA2D_IRQHandler(void)
-{
-	HAL_DMA2D_IRQHandler(&hDma2dHandler);
-}
 
 /**
   * @brief  Initializes the LCD.

@@ -33,6 +33,7 @@
 #include "string.h"
 
 extern uint8_t lcd_fb[16][RK043FN48H_WIDTH*RK043FN48H_HEIGHT*4];
+extern uint8_t LCD_scroll( int16_t xstep_in, int16_t ystep_in );
 
 extern LTDC_HandleTypeDef   hLtdcHandler;       // in stm32746g_discovery_lcd.c
 extern int32_t    ActiveLayer;                  // in stm32746g_discovery_lcd.c
@@ -565,6 +566,12 @@ STATIC mp_obj_t mod_lcdF7D_display_off(void) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mod_lcdF7D_display_off_obj, mod_lcdF7D_display_off);
 
+// scroll(dx, dy) like framebuf class
+STATIC mp_obj_t mod_lcdF7D_scroll(mp_obj_t dx, mp_obj_t dy) {
+    return mp_obj_new_int(LCD_scroll(mp_obj_get_int(dx), mp_obj_get_int(dy)));
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_2(mod_lcdF7D_scroll_obj, mod_lcdF7D_scroll);
+
 // module stuff
 
 STATIC const mp_rom_map_elem_t mp_module_lcdF7D_globals_table[] = {
@@ -608,6 +615,7 @@ STATIC const mp_rom_map_elem_t mp_module_lcdF7D_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_reload), MP_ROM_PTR(&mod_lcdF7D_reload_obj) },
     { MP_ROM_QSTR(MP_QSTR_reset_color_keying), MP_ROM_PTR(&mod_lcdF7D_reset_color_keying_obj) },
     { MP_ROM_QSTR(MP_QSTR_reset_color_keying_noreload), MP_ROM_PTR(&mod_lcdF7D_reset_color_keying_noreload_obj) },
+    { MP_ROM_QSTR(MP_QSTR_scroll), MP_ROM_PTR(&mod_lcdF7D_scroll_obj) },
     { MP_ROM_QSTR(MP_QSTR_select_layer), MP_ROM_PTR(&mod_lcdF7D_select_layer_obj) },
     { MP_ROM_QSTR(MP_QSTR_set_back_color), MP_ROM_PTR(&mod_lcdF7D_set_back_color_obj) },
     { MP_ROM_QSTR(MP_QSTR_set_color_keying), MP_ROM_PTR(&mod_lcdF7D_set_color_keying_obj) },
