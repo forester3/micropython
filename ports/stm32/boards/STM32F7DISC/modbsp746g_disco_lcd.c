@@ -119,7 +119,7 @@
   */
 
 #define __ATTR_FRAMEBUFFER  __attribute__ ((section(".extsdram"))) __attribute__ ((aligned (4)))
-uint8_t lcd_fb[16][RK043FN48H_WIDTH*RK043FN48H_HEIGHT*4] __ATTR_FRAMEBUFFER;
+uint8_t lcd_fb[5][RK043FN48H_WIDTH*RK043FN48H_HEIGHT*4] __ATTR_FRAMEBUFFER;
 
 LTDC_HandleTypeDef  hLtdcHandler;
 static DMA2D_HandleTypeDef hDma2dHandler;

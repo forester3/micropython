@@ -32,7 +32,7 @@
 #include "boards/STM32F7DISC/stm32746g_discovery_lcd.h"
 #include "string.h"
 
-extern uint8_t lcd_fb[16][RK043FN48H_WIDTH*RK043FN48H_HEIGHT*4];
+extern uint8_t lcd_fb[5][RK043FN48H_WIDTH*RK043FN48H_HEIGHT*4];
 extern uint8_t LCD_scroll( int16_t xstep_in, int16_t ystep_in );
 
 extern LTDC_HandleTypeDef   hLtdcHandler;       // in stm32746g_discovery_lcd.c
@@ -45,6 +45,27 @@ const char *format[LTDC_PIXEL_FORMAT_AL88+1] = {
 
 const char *get_pix_format(void){
     return format[hLtdcHandler.LayerCfg[ActiveLayer].PixelFormat];
+}
+
+static uint32_t argb_color_helper(size_t n_args, const mp_obj_t *args)
+{
+    uint32_t Color;
+
+    if( n_args == 1 ){
+        Color = 0xFF000000 + (mp_obj_get_int(args[0]) & 0x00FFFFFF);
+    }
+    else if( n_args == 2 ){
+        Color = ((mp_obj_get_int(args[0])&0xFF)<< 24) + (mp_obj_get_int(args[1]) & 0x00FFFFFF);
+    }
+    else if( n_args == 3 ){
+        Color = 0xFF000000 + ((mp_obj_get_int(args[0])&0xFF)<< 16)
+                + ((mp_obj_get_int(args[1])&0xFF)<< 8) + (mp_obj_get_int(args[2])&0xFF);
+    }
+    else{
+        Color = ((mp_obj_get_int(args[0])&0xFF)<< 24) + ((mp_obj_get_int(args[1])&0xFF)<< 16)
+                + ((mp_obj_get_int(args[2])&0xFF)<< 8) + (mp_obj_get_int(args[3])&0xFF);
+    }
+    return Color;
 }
 
 // def init()
@@ -156,7 +177,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_lcdF7D_layer_rgb565_init_obj, mod_lcdF7D_la
 
 // def select_layer(LayerIndex)
 STATIC mp_obj_t mod_lcdF7D_select_layer(mp_obj_t LayerIndex) {
-    BSP_LCD_SelectLayer(ActiveLayer);
+    BSP_LCD_SelectLayer(mp_obj_get_int(LayerIndex));
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_lcdF7D_select_layer_obj, mod_lcdF7D_select_layer);
@@ -269,19 +290,12 @@ STATIC mp_obj_t mod_lcdF7D_reload(mp_obj_t ReloadType) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_lcdF7D_reload_obj, mod_lcdF7D_reload);
 
-// def set_text_color(Color->a,r,g,b)
+
 STATIC mp_obj_t mod_lcdF7D_set_text_color(size_t n_args, const mp_obj_t *args) {
-    uint32_t    argb;
-
-    argb = (((uint32_t)mp_obj_get_int(args[0]) & 0xFF) << 24)
-            + ((mp_obj_get_int(args[1]) & 0xFF) << 16)
-            + ((mp_obj_get_int(args[2]) & 0xFF) << 8 )
-            +  (mp_obj_get_int(args[3]) & 0xFF);
-
-    BSP_LCD_SetTextColor(argb);
+    BSP_LCD_SetTextColor(argb_color_helper( n_args, args ));
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_lcdF7D_set_text_color_obj, 4, 4, mod_lcdF7D_set_text_color);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_lcdF7D_set_text_color_obj, 1, 4, mod_lcdF7D_set_text_color);
 
 // def get_text_color()
 STATIC mp_obj_t mod_lcdF7D_get_text_color(void) {
@@ -300,19 +314,12 @@ STATIC mp_obj_t mod_lcdF7D_get_text_color(void) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mod_lcdF7D_get_text_color_obj, mod_lcdF7D_get_text_color);
 
-// def set_back_color(Color->a,r,g,b)
+
 STATIC mp_obj_t mod_lcdF7D_set_back_color(size_t n_args, const mp_obj_t *args) {
-    uint32_t    argb;
-
-    argb = (((uint32_t)mp_obj_get_int(args[0]) & 0xFF) << 24)
-            + ((mp_obj_get_int(args[1]) & 0xFF) << 16)
-            + ((mp_obj_get_int(args[2]) & 0xFF) << 8 )
-            +  (mp_obj_get_int(args[3]) & 0xFF);
-
-    BSP_LCD_SetBackColor(argb);
+    BSP_LCD_SetBackColor( argb_color_helper( n_args, args ));
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_lcdF7D_set_back_color_obj, 4, 4, mod_lcdF7D_set_back_color);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_lcdF7D_set_back_color_obj, 1, 4, mod_lcdF7D_set_back_color);
 
 // def get_back_color()
 STATIC mp_obj_t mod_lcdF7D_get_back_color(void) {
@@ -401,16 +408,18 @@ STATIC mp_obj_t mod_lcdF7D_read_pixel(mp_obj_t Xpos, mp_obj_t Ypos) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(mod_lcdF7D_read_pixel_obj, mod_lcdF7D_read_pixel);
 
 
-// def clear(Color->a,r,g,b)
 STATIC mp_obj_t mod_lcdF7D_clear(size_t n_args, const mp_obj_t *args) {
     uint32_t Color;
-    Color = (mp_obj_get_int(args[0]) << 24) + (mp_obj_get_int(args[1]) << 16)
-            + (mp_obj_get_int(args[2]) << 8) + mp_obj_get_int(args[3]);
-    BSP_LCD_Clear(Color);
 
+    if( n_args == 0 )
+        Color = BSP_LCD_GetBackColor();
+    else
+        Color = argb_color_helper( n_args, args );
+    
+    BSP_LCD_Clear(Color);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_lcdF7D_clear_obj, 4, 4, mod_lcdF7D_clear);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_lcdF7D_clear_obj, 0, 4, mod_lcdF7D_clear);
 
 // def clear_string_line(Line)
 STATIC mp_obj_t mod_lcdF7D_clear_string_line(mp_obj_t Line) {
@@ -497,23 +506,33 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_lcdF7D_draw_ellipse_obj, 4, 4, mo
 STATIC mp_obj_t mod_lcdF7D_draw_pixel(size_t n_args, const mp_obj_t *args) {
     uint32_t argb;
 
-    if(hLtdcHandler.LayerCfg[ActiveLayer].PixelFormat == LTDC_PIXEL_FORMAT_RGB565){
-            /* RGB565 format */
-        argb = ((mp_obj_get_int(args[3]) & 0x1F) << 11)
-                + ((mp_obj_get_int(args[4]) & 0x3F) << 5)
-                + (mp_obj_get_int(args[5]) & 0x1F);
+    if( n_args == 2 ){
+        argb = BSP_LCD_GetTextColor();
     }
-    else{   /* ARGB8888 format */
-        argb = ((uint32_t)(mp_obj_get_int(args[2]) & 0xFF) << 24)
-                + ((mp_obj_get_int(args[3]) & 0xFF) << 16)
-                + ((mp_obj_get_int(args[4]) & 0xFF) << 8)
-                +  (mp_obj_get_int(args[5]) & 0xFF);
+    else if( n_args == 3 ){
+        argb = 0xFF000000 + (mp_obj_get_int(args[2]) & 0x00FFFFFF);
+    }
+    else if( n_args == 4 ){
+        argb = ((mp_obj_get_int(args[2])&0xFF) << 24) + (mp_obj_get_int(args[3]) & 0x00FFFFFF);
+    }
+    else if( n_args == 5 ){
+        argb = 0xFF000000  + ((mp_obj_get_int(args[2])&0xFF)<< 16)
+                + ((mp_obj_get_int(args[3])&0xFF)<< 8) + (mp_obj_get_int(args[4])&0xFF);
+    }
+    else{
+        argb = ((mp_obj_get_int(args[2])&0xFF)<< 24) + ((mp_obj_get_int(args[3])&0xFF)<< 16)
+                + ((mp_obj_get_int(args[4])&0xFF)<< 8) + (mp_obj_get_int(args[5])&0xFF);
+    }
+
+    if(hLtdcHandler.LayerCfg[ActiveLayer].PixelFormat == LTDC_PIXEL_FORMAT_RGB565){
+            /* from ARGB888 to RGB565 format */
+        argb =  ((argb & 0xF80000)>>8) + ((argb & 0xFC00)>>5) + ((argb & 0xF8)>>3);
     }
 
     BSP_LCD_DrawPixel(mp_obj_get_int(args[0]), mp_obj_get_int(args[1]), argb);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_lcdF7D_draw_pixel_obj, 6, 6, mod_lcdF7D_draw_pixel);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_lcdF7D_draw_pixel_obj, 2, 6, mod_lcdF7D_draw_pixel);
 
 // def draw_bitmap(Xpos, Ypos, pBmp)
 STATIC mp_obj_t mod_lcdF7D_draw_bitmap(mp_obj_t Xpos, mp_obj_t Ypos, mp_obj_t pBmp) {
@@ -572,6 +591,16 @@ STATIC mp_obj_t mod_lcdF7D_scroll(mp_obj_t dx, mp_obj_t dy) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(mod_lcdF7D_scroll_obj, mod_lcdF7D_scroll);
 
+STATIC mp_obj_t mod_lcdF7D_font_height(void) {
+    return mp_obj_new_int(DrawProp[ActiveLayer].pFont->Height);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(mod_lcdF7D_font_height_obj, mod_lcdF7D_font_height);
+
+STATIC mp_obj_t mod_lcdF7D_font_width(void) {
+    return mp_obj_new_int(DrawProp[ActiveLayer].pFont->Width);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(mod_lcdF7D_font_width_obj, mod_lcdF7D_font_width);
+
 // module stuff
 
 STATIC const mp_rom_map_elem_t mp_module_lcdF7D_globals_table[] = {
@@ -602,6 +631,8 @@ STATIC const mp_rom_map_elem_t mp_module_lcdF7D_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_fill_polygon), MP_ROM_PTR(&mod_lcdF7D_fill_polygon_obj) },
     { MP_ROM_QSTR(MP_QSTR_fill_rect), MP_ROM_PTR(&mod_lcdF7D_fill_rect_obj) },
 //    { MP_ROM_QSTR(MP_QSTR_fill_triangle), MP_ROM_PTR(&mod_lcdF7D_fill_triangle_obj) },
+    { MP_ROM_QSTR(MP_QSTR_font_height), MP_ROM_PTR(&mod_lcdF7D_font_height_obj) },
+    { MP_ROM_QSTR(MP_QSTR_font_width), MP_ROM_PTR(&mod_lcdF7D_font_width_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_back_color), MP_ROM_PTR(&mod_lcdF7D_get_back_color_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_font), MP_ROM_PTR(&mod_lcdF7D_get_font_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_size), MP_ROM_PTR(&mod_lcdF7D_get_size_obj) },
