@@ -79,7 +79,8 @@ STATIC mp_obj_t mod_tchF7D_point_info(mp_obj_t num) {
     uint8_t n = mp_obj_get_int(num);
     if( (touchState.touchDetected < n)||(n <= 0)||(n > 5) )
     {
-        printf("point_info(n):%d is out of touches !!", n);
+        mp_raise_ValueError("tchF7D.point_info(n):");
+        printf("%d is out of touches !!", n);
     }
     n--;
     mp_obj_t tuple[5] = {
