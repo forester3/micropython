@@ -196,6 +196,7 @@ endif
 EXTMOD_SRC_C = $(addprefix extmod/,\
 	modlwip.c \
 	modonewire.c \
+	modlcdF7D.c \
         )
 
 DRIVERS_SRC_C = $(addprefix drivers/,\
@@ -284,6 +285,8 @@ SRC_HAL = $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_,\
 	hal_dac.c \
 	hal_dac_ex.c \
 	hal_dma.c \
+	hal_dma2d.c \
+	hal_ltdc.c \
 	hal_flash.c \
 	hal_flash_ex.c \
 	hal_gpio.c \
@@ -296,6 +299,8 @@ SRC_HAL = $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_,\
 	hal_rcc_ex.c \
 	hal_rtc.c \
 	hal_rtc_ex.c \
+	hal_sd.c \
+	hal_sdram.c \
 	hal_spi.c \
 	hal_tim.c \
 	hal_tim_ex.c \
@@ -306,8 +311,8 @@ ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f4 f7 h7 l4))
 $(BUILD)/$(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_ll_usb.o: CFLAGS += -Wno-attributes
 SRC_HAL += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_,\
 	hal_sd.c \
-	ll_sdmmc.c \
 	ll_fmc.c \
+	ll_sdmmc.c \
 	ll_usb.c \
 	)
 endif
