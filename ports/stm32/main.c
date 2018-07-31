@@ -62,6 +62,10 @@
 #include "dac.h"
 #include "can.h"
 #include "modnetwork.h"
+#if MICROPY_HW_HAS_F7DLCD
+#include "stm32746g_discovery_lcd.h"
+#endif
+
 
 void SystemClock_Config(void);
 
@@ -759,6 +763,9 @@ soft_reset_exit:
     uart_deinit();
     #if MICROPY_HW_ENABLE_CAN
     can_deinit();
+    #endif
+    #if MICROPY_HW_HAS_F7DLCD
+    BSP_LCD_DeInit();
     #endif
     machine_deinit();
 

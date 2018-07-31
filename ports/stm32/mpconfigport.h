@@ -193,6 +193,9 @@ extern const struct _mp_obj_module_t mp_module_utime;
 extern const struct _mp_obj_module_t mp_module_usocket;
 extern const struct _mp_obj_module_t mp_module_network;
 extern const struct _mp_obj_module_t mp_module_onewire;
+#if MICROPY_HW_HAS_F7DLCD
+extern const struct _mp_obj_module_t mp_module_lcdF7D;
+#endif
 
 #if MICROPY_PY_STM
 #define STM_BUILTIN_MODULE               { MP_ROM_QSTR(MP_QSTR_stm), MP_ROM_PTR(&stm_module) },
@@ -232,6 +235,7 @@ extern const struct _mp_obj_module_t mp_module_onewire;
     SOCKET_BUILTIN_MODULE \
     NETWORK_BUILTIN_MODULE \
     { MP_ROM_QSTR(MP_QSTR__onewire), MP_ROM_PTR(&mp_module_onewire) }, \
+    { MP_ROM_QSTR(MP_QSTR_lcdF7D), MP_ROM_PTR(&mp_module_lcdF7D) }, \
 
 #define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS \
     { MP_ROM_QSTR(MP_QSTR_binascii), MP_ROM_PTR(&mp_module_ubinascii) }, \
