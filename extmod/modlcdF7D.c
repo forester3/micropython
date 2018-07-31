@@ -69,7 +69,7 @@ STATIC mp_obj_t mod_lcdF7D_init(void) {
     BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
     BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 
-return mp_obj_new_int(ret);
+    return mp_obj_new_int(ret);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mod_lcdF7D_init_obj, mod_lcdF7D_init);
 
@@ -630,7 +630,6 @@ STATIC MP_DEFINE_CONST_DICT(mp_module_lcdF7D_globals, mp_module_lcdF7D_globals_t
 
 const mp_obj_module_t mp_module_lcdF7D = {
     .base = { &mp_type_module },
-//    .name = MP_QSTR_lcdF7D,
     .globals = (mp_obj_dict_t*)&mp_module_lcdF7D_globals,
 };
 

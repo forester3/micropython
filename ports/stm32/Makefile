@@ -197,6 +197,7 @@ EXTMOD_SRC_C = $(addprefix extmod/,\
 	modlwip.c \
 	modonewire.c \
 	modlcdF7D.c \
+	modtchF7D.c \
         )
 
 DRIVERS_SRC_C = $(addprefix drivers/,\
@@ -305,6 +306,7 @@ SRC_HAL = $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_,\
 	hal_tim.c \
 	hal_tim_ex.c \
 	hal_uart.c \
+	ll_fmc.c \
 	)
 
 ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f4 f7 h7 l4))

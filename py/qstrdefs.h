@@ -107,6 +107,17 @@ Q(set_transparency_noreload)
 Q(set_x_size)
 Q(set_y_size)
 #endif  // MICROPY_HW_HAS_F7DLCD
+#if MICROPY_HW_HAS_F7DTCH
+Q(deinit)
+Q(gesture)
+Q(get_gesture_id)
+Q(get_state)
+Q(init)
+Q(point_info)
+Q(reset_touch_data)
+Q(tchF7D)
+Q(touches)
+#endif  //  MICROPY_HW_HAS_F7DTCH
 #if MICROPY_ENABLE_PYSTACK
 Q(pystack exhausted)
 #endif

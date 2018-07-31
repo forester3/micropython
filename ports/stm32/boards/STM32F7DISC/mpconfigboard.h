@@ -9,6 +9,7 @@
 #define MICROPY_HW_ENABLE_USB       (1)
 #define MICROPY_HW_HAS_F7DLCD       (1)
 #define MICROPY_HW_HAS_SDRAM        (1)
+#define MICROPY_HW_HAS_F7DTCH       (1)
 
 #define MICROPY_BOARD_EARLY_INIT    STM32F7DISC_board_early_init
 void STM32F7DISC_board_early_init(void);
