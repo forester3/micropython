@@ -560,16 +560,19 @@ soft_reset:
     mp_stack_set_limit((char*)&_estack - (char*)&_heap_end - 1024);
 
     // GC init
-    #if MICROPY_HW_SDRAM_SIZE
-    sdram_init();
+    #if MICROPY_HW_HAS_F7DLCD
+    BSP_SDRAM_Init();
+    #endif
+//    #if MICROPY_HW_SDRAM_SIZE
+//    sdram_init();
     #if MICROPY_HW_SDRAM_STARTUP_TEST
-    sdram_test(true);
+    sdram_test(false);                  // false is slow test
     #endif
 
-    gc_init(sdram_start(), sdram_end());
-    #else
-    gc_init(&_heap_start, &_heap_end);
-    #endif
+    gc_init(usdram_start, sdram_end());
+//    #else
+//    gc_init(&_heap_start, &_heap_end);
+//    #endif
 
     #if MICROPY_ENABLE_PYSTACK
     static mp_obj_t pystack[384];

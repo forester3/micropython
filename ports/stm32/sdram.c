@@ -142,13 +142,6 @@ bool sdram_init(void) {
     return true;
 }
 
-void *sdram_start(void) {
-    return (void*)SDRAM_START_ADDRESS;
-}
-
-void *sdram_end(void) {
-    return (void*)(SDRAM_START_ADDRESS + MICROPY_HW_SDRAM_SIZE);
-}
 
 static void sdram_init_seq(SDRAM_HandleTypeDef
         *hsdram, FMC_SDRAM_CommandTypeDef *command)
@@ -241,6 +234,17 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
     HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
     #endif
 }
+#endif // FMC_SDRAM_BANK
+
+#if defined(MICROPY_HW_HAS_F7DLCD)
+
+void *sdram_start(void) {
+    return (void*)SDRAM_START_ADDRESS;
+}
+
+void *sdram_end(void) {
+    return (void*)(SDRAM_START_ADDRESS + MICROPY_HW_SDRAM_SIZE);
+}
 
 bool __attribute__((optimize("O0"))) sdram_test(bool fast) {
     uint8_t const pattern = 0xaa;
@@ -290,5 +294,5 @@ bool __attribute__((optimize("O0"))) sdram_test(bool fast) {
 
     return true;
 }
-
-#endif // FMC_SDRAM_BANK
+#endif // MICROPY_HW_HAS_F7DLCD
+//#endif // FMC_SDRAM_BANK

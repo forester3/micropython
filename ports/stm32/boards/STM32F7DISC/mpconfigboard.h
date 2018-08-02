@@ -81,3 +81,8 @@ void STM32F7DISC_board_early_init(void);
 #define MICROPY_HW_USB_FS              (1)
 /*#define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_J12)*/
 #define MICROPY_HW_USB_OTG_ID_PIN      (pin_A10)
+
+// SDRAM
+#define MICROPY_HW_SDRAM_SIZE           (64 / 8 * 1024 * 1024)  // 64 Mbit
+#define MICROPY_HW_SDRAM_STARTUP_TEST   (1)
+#define SDRAM_START_ADDRESS             (0xC0000000)

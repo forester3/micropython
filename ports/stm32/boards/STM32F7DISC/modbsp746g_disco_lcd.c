@@ -119,6 +119,7 @@
   */
 
 #define __ATTR_FRAMEBUFFER  __attribute__ ((section(".extsdram"))) __attribute__ ((aligned (4)))
+uint8_t usdram_start[11][RK043FN48H_WIDTH*RK043FN48H_HEIGHT*4] __ATTR_FRAMEBUFFER;
 uint8_t lcd_fb[5][RK043FN48H_WIDTH*RK043FN48H_HEIGHT*4] __ATTR_FRAMEBUFFER;
 
 LTDC_HandleTypeDef  hLtdcHandler;
@@ -233,7 +234,7 @@ uint8_t BSP_LCD_Init(void)
   /* Assert backlight LCD_BL_CTRL pin */
   HAL_GPIO_WritePin(LCD_BL_CTRL_GPIO_PORT, LCD_BL_CTRL_PIN, GPIO_PIN_SET);
 
-  BSP_SDRAM_Init();
+//  BSP_SDRAM_Init();
 
   __HAL_RCC_DMA2D_CLK_ENABLE();
 

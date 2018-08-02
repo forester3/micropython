@@ -70,6 +70,9 @@
 /** @defgroup STM32746G_DISCOVERY_LCD_Exported_Types STM32746G_DISCOVERY_LCD Exported Types
   * @{
   */  
+
+extern uint8_t usdram_start[11][RK043FN48H_WIDTH*RK043FN48H_HEIGHT*4];
+
 typedef struct 
 { 
   uint32_t TextColor; 
