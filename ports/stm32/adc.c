@@ -63,22 +63,27 @@
 
 #define ADC_FIRST_GPIO_CHANNEL  (0)
 #define ADC_LAST_GPIO_CHANNEL   (15)
+#define ADC_SCALE_V             (3.3f)
 #define ADC_CAL_ADDRESS         (0x1ffff7ba)
 #define ADC_CAL1                ((uint16_t*)0x1ffff7b8)
 #define ADC_CAL2                ((uint16_t*)0x1ffff7c2)
+#define ADC_CAL_BITS            (12)
 
 #elif defined(STM32F4)
 
 #define ADC_FIRST_GPIO_CHANNEL  (0)
 #define ADC_LAST_GPIO_CHANNEL   (15)
+#define ADC_SCALE_V             (3.3f)
 #define ADC_CAL_ADDRESS         (0x1fff7a2a)
 #define ADC_CAL1                ((uint16_t*)(ADC_CAL_ADDRESS + 2))
 #define ADC_CAL2                ((uint16_t*)(ADC_CAL_ADDRESS + 4))
+#define ADC_CAL_BITS            (12)
 
 #elif defined(STM32F7)
 
 #define ADC_FIRST_GPIO_CHANNEL  (0)
 #define ADC_LAST_GPIO_CHANNEL   (15)
+#define ADC_SCALE_V             (3.3f)
 #if defined(STM32F722xx) || defined(STM32F723xx) || \
     defined(STM32F732xx) || defined(STM32F733xx)
 #define ADC_CAL_ADDRESS         (0x1ff07a2a)
@@ -88,23 +93,28 @@
 
 #define ADC_CAL1                ((uint16_t*)(ADC_CAL_ADDRESS + 2))
 #define ADC_CAL2                ((uint16_t*)(ADC_CAL_ADDRESS + 4))
+#define ADC_CAL_BITS            (12)
 
 #elif defined(STM32H7)
 
 #define ADC_FIRST_GPIO_CHANNEL  (0)
 #define ADC_LAST_GPIO_CHANNEL   (16)
+#define ADC_SCALE_V             (3.3f)
 #define ADC_CAL_ADDRESS         (0x1FF1E860)
 #define ADC_CAL1                ((uint16_t*)(0x1FF1E820))
 #define ADC_CAL2                ((uint16_t*)(0x1FF1E840))
+#define ADC_CAL_BITS            (16)
 #define ADC_CHANNEL_VBAT        ADC_CHANNEL_VBAT_DIV4
 
 #elif defined(STM32L4)
 
 #define ADC_FIRST_GPIO_CHANNEL  (1)
 #define ADC_LAST_GPIO_CHANNEL   (16)
+#define ADC_SCALE_V             (3.0f)
 #define ADC_CAL_ADDRESS         (0x1fff75aa)
 #define ADC_CAL1                ((uint16_t*)(ADC_CAL_ADDRESS - 2))
 #define ADC_CAL2                ((uint16_t*)(ADC_CAL_ADDRESS + 0x20))
+#define ADC_CAL_BITS            (12)
 
 #else
 
@@ -121,15 +131,16 @@
 #define VBAT_DIV (2)
 #elif defined(STM32F427xx) || defined(STM32F429xx) || \
       defined(STM32F437xx) || defined(STM32F439xx) || \
+      defined(STM32F446xx) || \
       defined(STM32F722xx) || defined(STM32F723xx) || \
       defined(STM32F732xx) || defined(STM32F733xx) || \
-      defined(STM32F746xx) || defined(STM32F767xx) || \
-      defined(STM32F769xx) || defined(STM32F446xx)
+      defined(STM32F746xx) || defined(STM32F765xx) || \
+      defined(STM32F767xx) || defined(STM32F769xx)
 #define VBAT_DIV (4)
 #elif defined(STM32H743xx)
 #define VBAT_DIV (4)
-#elif defined(STM32L475xx) || defined(STM32L476xx) || \
-      defined(STM32L496xx)
+#elif defined(STM32L432xx) || defined(STM32L475xx) || \
+      defined(STM32L476xx) || defined(STM32L496xx)
 #define VBAT_DIV (3)
 #else
 #error Unsupported processor
@@ -143,7 +154,7 @@
 #define CORE_TEMP_AVG_SLOPE    (3)    /* (2.5mv/3.3v)*(2^ADC resoultion) */
 
 // scale and calibration values for VBAT and VREF
-#define ADC_SCALE (3.3f / 4095)
+#define ADC_SCALE (ADC_SCALE_V / ((1 << ADC_CAL_BITS) - 1))
 #define VREFIN_CAL ((uint16_t *)ADC_CAL_ADDRESS)
 
 typedef struct _pyb_obj_adc_t {
@@ -257,6 +268,9 @@ STATIC void adcx_init_periph(ADC_HandleTypeDef *adch, uint32_t resolution) {
     #if defined(STM32H7)
     HAL_ADCEx_Calibration_Start(adch, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
     #endif
+    #if defined(STM32L4)
+    HAL_ADCEx_Calibration_Start(adch, ADC_SINGLE_ENDED);
+    #endif
 }
 
 STATIC void adc_init_single(pyb_obj_adc_t *adc_obj) {
@@ -272,7 +286,7 @@ STATIC void adc_init_single(pyb_obj_adc_t *adc_obj) {
 
     adcx_init_periph(&adc_obj->handle, ADC_RESOLUTION_12B);
 
-#if defined(STM32L4)
+#if defined(STM32L4) && defined(ADC_DUALMODE_REGSIMULT_INJECSIMULT)
     ADC_MultiModeTypeDef multimode;
     multimode.Mode = ADC_MODE_INDEPENDENT;
     if (HAL_ADCEx_MultiModeConfigChannel(&adc_obj->handle, &multimode) != HAL_OK)
@@ -292,13 +306,25 @@ STATIC void adc_config_channel(ADC_HandleTypeDef *adc_handle, uint32_t channel) 
 #elif defined(STM32F4) || defined(STM32F7)
     sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
 #elif defined(STM32H7)
-    sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+    if (channel == ADC_CHANNEL_VREFINT
+        || channel == ADC_CHANNEL_TEMPSENSOR
+        || channel == ADC_CHANNEL_VBAT) {
+        sConfig.SamplingTime = ADC_SAMPLETIME_387CYCLES_5;
+    } else {
+        sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+    }
     sConfig.SingleDiff = ADC_SINGLE_ENDED;
     sConfig.OffsetNumber = ADC_OFFSET_NONE;
     sConfig.OffsetRightShift = DISABLE;
     sConfig.OffsetSignedSaturation = DISABLE;
 #elif defined(STM32L4)
-    sConfig.SamplingTime = ADC_SAMPLETIME_12CYCLES_5;
+    if (channel == ADC_CHANNEL_VREFINT
+        || channel == ADC_CHANNEL_TEMPSENSOR
+        || channel == ADC_CHANNEL_VBAT) {
+        sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;
+    } else {
+        sConfig.SamplingTime = ADC_SAMPLETIME_12CYCLES_5;
+    }
     sConfig.SingleDiff = ADC_SINGLE_ENDED;
     sConfig.OffsetNumber = ADC_OFFSET_NONE;
     sConfig.Offset = 0;
@@ -651,6 +677,9 @@ void adc_init_all(pyb_adc_all_obj_t *adc_all, uint32_t resolution, uint32_t en_m
         case 8:  resolution = ADC_RESOLUTION_8B;  break;
         case 10: resolution = ADC_RESOLUTION_10B; break;
         case 12: resolution = ADC_RESOLUTION_12B; break;
+        #if defined(STM32H7)
+        case 16: resolution = ADC_RESOLUTION_16B; break;
+        #endif
         default:
             nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError,
                 "resolution %d not supported", resolution));
@@ -680,17 +709,21 @@ int adc_get_resolution(ADC_HandleTypeDef *adcHandle) {
         #endif
         case ADC_RESOLUTION_8B:  return 8;
         case ADC_RESOLUTION_10B: return 10;
+        #if defined(STM32H7)
+        case ADC_RESOLUTION_16B: return 16;
+        #endif
     }
     return 12;
 }
 
+STATIC uint32_t adc_config_and_read_ref(ADC_HandleTypeDef *adcHandle, uint32_t channel) {
+    uint32_t raw_value = adc_config_and_read_channel(adcHandle, channel);
+    // Scale raw reading to the number of bits used by the calibration constants
+    return raw_value << (ADC_CAL_BITS - adc_get_resolution(adcHandle));
+}
+
 int adc_read_core_temp(ADC_HandleTypeDef *adcHandle) {
-    int32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_TEMPSENSOR);
-
-    // Note: constants assume 12-bit resolution, so we scale the raw value to
-    //       be 12-bits.
-    raw_value <<= (12 - adc_get_resolution(adcHandle));
-
+    int32_t raw_value = adc_config_and_read_ref(adcHandle, ADC_CHANNEL_TEMPSENSOR);
     return ((raw_value - CORE_TEMP_V25) / CORE_TEMP_AVG_SLOPE) + 25;
 }
 
@@ -699,31 +732,18 @@ int adc_read_core_temp(ADC_HandleTypeDef *adcHandle) {
 STATIC volatile float adc_refcor = 1.0f;
 
 float adc_read_core_temp_float(ADC_HandleTypeDef *adcHandle) {
-    int32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_TEMPSENSOR);
-
-    // constants assume 12-bit resolution so we scale the raw value to 12-bits
-    raw_value <<= (12 - adc_get_resolution(adcHandle));
-
+    int32_t raw_value = adc_config_and_read_ref(adcHandle, ADC_CHANNEL_TEMPSENSOR);
     float core_temp_avg_slope = (*ADC_CAL2 - *ADC_CAL1) / 80.0;
     return (((float)raw_value * adc_refcor - *ADC_CAL1) / core_temp_avg_slope) + 30.0f;
 }
 
 float adc_read_core_vbat(ADC_HandleTypeDef *adcHandle) {
-    uint32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_VBAT);
-
-    // Note: constants assume 12-bit resolution, so we scale the raw value to
-    //       be 12-bits.
-    raw_value <<= (12 - adc_get_resolution(adcHandle));
-
+    uint32_t raw_value = adc_config_and_read_ref(adcHandle, ADC_CHANNEL_VBAT);
     return raw_value * VBAT_DIV * ADC_SCALE * adc_refcor;
 }
 
 float adc_read_core_vref(ADC_HandleTypeDef *adcHandle) {
-    uint32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_VREFINT);
-
-    // Note: constants assume 12-bit resolution, so we scale the raw value to
-    //       be 12-bits.
-    raw_value <<= (12 - adc_get_resolution(adcHandle));
+    uint32_t raw_value = adc_config_and_read_ref(adcHandle, ADC_CHANNEL_VREFINT);
 
     // update the reference correction factor
     adc_refcor = ((float)(*VREFIN_CAL)) / ((float)raw_value);
@@ -790,7 +810,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(adc_all_read_core_vref_obj, adc_all_read_core_v
 STATIC mp_obj_t adc_all_read_vref(mp_obj_t self_in) {
     pyb_adc_all_obj_t *self = MP_OBJ_TO_PTR(self_in);
     adc_read_core_vref(&self->handle);
-    return mp_obj_new_float(3.3 * adc_refcor);
+    return mp_obj_new_float(ADC_SCALE_V * adc_refcor);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(adc_all_read_vref_obj, adc_all_read_vref);
 #endif

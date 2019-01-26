@@ -32,6 +32,13 @@
 #include "mpconfigboard_common.h"
 
 // memory allocation policies
+#ifndef MICROPY_GC_STACK_ENTRY_TYPE
+#if MICROPY_HW_SDRAM_SIZE
+#define MICROPY_GC_STACK_ENTRY_TYPE uint32_t
+#else
+#define MICROPY_GC_STACK_ENTRY_TYPE uint16_t
+#endif
+#endif
 #define MICROPY_ALLOC_PATH_MAX      (128)
 
 // emitters
@@ -52,6 +59,7 @@
 #define MICROPY_OPT_COMPUTED_GOTO   (1)
 #define MICROPY_OPT_CACHE_MAP_LOOKUP_IN_BYTECODE (0)
 #define MICROPY_OPT_MPZ_BITWISE     (1)
+#define MICROPY_OPT_MATH_FACTORIAL  (1)
 
 // Python internal features
 #define MICROPY_READER_VFS          (1)
@@ -106,6 +114,7 @@
 #define MICROPY_PY_COLLECTIONS_DEQUE (1)
 #define MICROPY_PY_COLLECTIONS_ORDEREDDICT (1)
 #define MICROPY_PY_MATH_SPECIAL_FUNCTIONS (1)
+#define MICROPY_PY_MATH_FACTORIAL   (1)
 #define MICROPY_PY_CMATH            (1)
 #define MICROPY_PY_IO               (1)
 #define MICROPY_PY_IO_IOBASE        (1)
