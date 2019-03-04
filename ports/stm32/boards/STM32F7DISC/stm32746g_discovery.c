@@ -737,7 +737,7 @@ void AUDIO_IO_Delay(uint32_t Delay)
 {
   //HAL_Delay(Delay);
   uint32_t start_tick = HAL_GetTick();
-  sys_tick_wait_at_least(start_tick, Delay);
+  systick_wait_at_least(start_tick, Delay);
 }
 
 /********************************* LINK CAMERA ********************************/
@@ -787,7 +787,7 @@ void CAMERA_Delay(uint32_t Delay)
 {
   //HAL_Delay(Delay);
   uint32_t start_tick = HAL_GetTick();
-  sys_tick_wait_at_least(start_tick, Delay);
+  systick_wait_at_least(start_tick, Delay);
 }
 
 /******************************** LINK I2C EEPROM *****************************/
@@ -886,7 +886,7 @@ void TS_IO_Delay(uint32_t Delay)
 {
   //HAL_Delay(Delay);
   uint32_t start_tick = HAL_GetTick();
-  sys_tick_wait_at_least(start_tick, Delay);
+  systick_wait_at_least(start_tick, Delay);
 }
 
 /**

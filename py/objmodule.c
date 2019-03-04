@@ -61,6 +61,13 @@ STATIC void module_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
         mp_map_elem_t *elem = mp_map_lookup(&self->globals->map, MP_OBJ_NEW_QSTR(attr), MP_MAP_LOOKUP);
         if (elem != NULL) {
             dest[0] = elem->value;
+        #if MICROPY_MODULE_GETATTR
+        } else if (attr != MP_QSTR___getattr__) {
+            elem = mp_map_lookup(&self->globals->map, MP_OBJ_NEW_QSTR(MP_QSTR___getattr__), MP_MAP_LOOKUP);
+            if (elem != NULL) {
+                dest[0] = mp_call_function_1(elem->value, MP_OBJ_NEW_QSTR(attr));
+            }
+        #endif
         }
     } else {
         // delete/store attribute
@@ -84,7 +91,6 @@ STATIC void module_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
             mp_obj_dict_delete(MP_OBJ_FROM_PTR(dict), MP_OBJ_NEW_QSTR(attr));
         } else {
             // store attribute
-            // TODO CPython allows STORE_ATTR to a module, but is this the correct implementation?
             mp_obj_dict_store(MP_OBJ_FROM_PTR(dict), MP_OBJ_NEW_QSTR(attr), dest[1]);
         }
         dest[0] = MP_OBJ_NULL; // indicate success
@@ -205,8 +211,8 @@ STATIC const mp_rom_map_elem_t mp_builtin_module_table[] = {
 #if MICROPY_PY_LWIP
     { MP_ROM_QSTR(MP_QSTR_lwip), MP_ROM_PTR(&mp_module_lwip) },
 #endif
-#if MICROPY_PY_WEBSOCKET
-    { MP_ROM_QSTR(MP_QSTR_websocket), MP_ROM_PTR(&mp_module_websocket) },
+#if MICROPY_PY_UWEBSOCKET
+    { MP_ROM_QSTR(MP_QSTR_uwebsocket), MP_ROM_PTR(&mp_module_uwebsocket) },
 #endif
 #if MICROPY_PY_WEBREPL
     { MP_ROM_QSTR(MP_QSTR__webrepl), MP_ROM_PTR(&mp_module_webrepl) },
