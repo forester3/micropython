@@ -110,6 +110,7 @@ SRC_LIB = $(addprefix lib/,\
 	oofatfs/option/unicode.c \
 	mp-readline/readline.c \
 	netutils/netutils.c \
+	netutils/trace.c \
 	timeutils/timeutils.c \
 	utils/pyexec.c \
 	utils/interrupt_char.c \
@@ -240,6 +241,7 @@ SRC_C = \
 	can.c \
 	usb.c \
 	wdt.c \
+	eth.c \
 	gccollect.c \
 	help.c \
 	machine_i2c.c \
@@ -251,6 +253,7 @@ SRC_C = \
 	moduos.c \
 	modutime.c \
 	modusocket.c \
+	network_lan.c \
 	modnetwork.c \
 	extint.c \
 	usrsw.c \
@@ -275,13 +278,13 @@ SRC_O = \
 	$(STARTUP_FILE) \
 	system_stm32f0.o \
 	resethandler_m0.o \
-	gchelper_m0.o
+	lib/utils/gchelper_m0.o
 else
 SRC_O = \
 	$(STARTUP_FILE) \
 	system_stm32.o \
 	resethandler.o \
-	gchelper.o
+	lib/utils/gchelper_m3.o
 endif
 
 SRC_HAL = $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_,\
@@ -573,7 +576,11 @@ main.c: $(GEN_CDCINF_HEADER)
 # both pins_$(BOARD).c and pins.h
 $(BUILD)/%_$(BOARD).c $(HEADER_BUILD)/%.h $(HEADER_BUILD)/%_af_const.h $(HEADER_BUILD)/%_af_defs.h $(BUILD)/%_qstr.h: $(BOARD_DIR)/%.csv $(MAKE_PINS) $(AF_FILE) $(PREFIX_FILE) | $(HEADER_BUILD)
 	$(ECHO) "GEN $@"
-	$(Q)$(PYTHON) $(MAKE_PINS) --board $(BOARD_PINS) --af $(AF_FILE) --prefix $(PREFIX_FILE) --hdr $(GEN_PINS_HDR) --qstr $(GEN_PINS_QSTR) --af-const $(GEN_PINS_AF_CONST) --af-defs $(GEN_PINS_AF_DEFS) --af-py $(GEN_PINS_AF_PY) > $(GEN_PINS_SRC)
+	$(Q)$(PYTHON) $(MAKE_PINS) --board $(BOARD_PINS) --af $(AF_FILE) \
+		--prefix $(PREFIX_FILE) --hdr $(GEN_PINS_HDR) --hdr-obj-decls \
+		--qstr $(GEN_PINS_QSTR) --af-const $(GEN_PINS_AF_CONST) \
+		--af-defs $(GEN_PINS_AF_DEFS) --af-defs-cmp-strings \
+		--af-py $(GEN_PINS_AF_PY) > $(GEN_PINS_SRC)
 
 $(BUILD)/pins_$(BOARD).o: $(BUILD)/pins_$(BOARD).c
 	$(call compile_c)

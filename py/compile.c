@@ -164,6 +164,7 @@ STATIC void compile_syntax_error(compiler_t *comp, mp_parse_node_t pn, const cha
 
 STATIC void compile_trailer_paren_helper(compiler_t *comp, mp_parse_node_t pn_arglist, bool is_method_call, int n_positional_extra);
 STATIC void compile_comprehension(compiler_t *comp, mp_parse_node_struct_t *pns, scope_kind_t kind);
+STATIC void compile_atom_brace_helper(compiler_t *comp, mp_parse_node_struct_t *pns, bool create_map);
 STATIC void compile_node(compiler_t *comp, mp_parse_node_t pn);
 
 STATIC uint comp_next_label(compiler_t *comp) {
@@ -1582,25 +1583,32 @@ STATIC void compile_try_except(compiler_t *comp, mp_parse_node_t pn_body, int n_
             compile_store_id(comp, qstr_exception_local);
         }
 
+        // If the exception is bound to a variable <e> then the <body> of the
+        // exception handler is wrapped in a try-finally so that the name <e> can
+        // be deleted (per Python semantics) even if the <body> has an exception.
+        // In such a case the generated code for the exception handler is:
+        //      try:
+        //          <body>
+        //      finally:
+        //          <e> = None
+        //          del <e>
         uint l3 = 0;
         if (qstr_exception_local != 0) {
             l3 = comp_next_label(comp);
             compile_increase_except_level(comp, l3, MP_EMIT_SETUP_BLOCK_FINALLY);
         }
-        compile_node(comp, pns_except->nodes[1]);
+        compile_node(comp, pns_except->nodes[1]); // the <body>
         if (qstr_exception_local != 0) {
             EMIT(pop_block);
-        }
-        EMIT(pop_except);
-        if (qstr_exception_local != 0) {
             EMIT_ARG(load_const_tok, MP_TOKEN_KW_NONE);
             EMIT_ARG(label_assign, l3);
             EMIT_ARG(load_const_tok, MP_TOKEN_KW_NONE);
             compile_store_id(comp, qstr_exception_local);
             compile_delete_id(comp, qstr_exception_local);
-
             compile_decrease_except_level(comp);
         }
+
+        EMIT(pop_except);
         EMIT_ARG(jump, l2);
         EMIT_ARG(label_assign, end_finally_label);
         EMIT_ARG(adjust_stack_size, 1); // stack adjust for the exception instance
@@ -1823,7 +1831,7 @@ STATIC void compile_async_with_stmt_helper(compiler_t *comp, int n, mp_parse_nod
 
         // Detect if TOS an exception or not
         EMIT(dup_top);
-        EMIT_LOAD_GLOBAL(MP_QSTR_Exception);
+        EMIT_LOAD_GLOBAL(MP_QSTR_BaseException);
         EMIT_ARG(binary_op, MP_BINARY_OP_EXCEPTION_MATCH);
         EMIT_ARG(pop_jump_if, false, l_ret_unwind_jump); // if not an exception then we have case 3
 
@@ -2240,6 +2248,20 @@ STATIC void compile_atom_expr_normal(compiler_t *comp, mp_parse_node_struct_t *p
             EMIT_ARG(call_function, 2, 0, 0);
             i = 1;
         }
+
+    #if MICROPY_COMP_CONST_LITERAL && MICROPY_PY_COLLECTIONS_ORDEREDDICT
+    // handle special OrderedDict constructor
+    } else if (MP_PARSE_NODE_IS_ID(pns->nodes[0])
+        && MP_PARSE_NODE_LEAF_ARG(pns->nodes[0]) == MP_QSTR_OrderedDict
+        && MP_PARSE_NODE_STRUCT_KIND(pns_trail[0]) == PN_trailer_paren
+        && MP_PARSE_NODE_IS_STRUCT_KIND(pns_trail[0]->nodes[0], PN_atom_brace)) {
+        // at this point we have matched "OrderedDict({...})"
+
+        EMIT_ARG(call_function, 0, 0, 0);
+        mp_parse_node_struct_t *pns_dict = (mp_parse_node_struct_t*)pns_trail[0]->nodes[0];
+        compile_atom_brace_helper(comp, pns_dict, false);
+        i = 1;
+    #endif
     }
 
     // compile the remaining trailers
@@ -2448,16 +2470,20 @@ STATIC void compile_atom_bracket(compiler_t *comp, mp_parse_node_struct_t *pns) 
     }
 }
 
-STATIC void compile_atom_brace(compiler_t *comp, mp_parse_node_struct_t *pns) {
+STATIC void compile_atom_brace_helper(compiler_t *comp, mp_parse_node_struct_t *pns, bool create_map) {
     mp_parse_node_t pn = pns->nodes[0];
     if (MP_PARSE_NODE_IS_NULL(pn)) {
         // empty dict
-        EMIT_ARG(build, 0, MP_EMIT_BUILD_MAP);
+        if (create_map) {
+            EMIT_ARG(build, 0, MP_EMIT_BUILD_MAP);
+        }
     } else if (MP_PARSE_NODE_IS_STRUCT(pn)) {
         pns = (mp_parse_node_struct_t*)pn;
         if (MP_PARSE_NODE_STRUCT_KIND(pns) == PN_dictorsetmaker_item) {
             // dict with one element
-            EMIT_ARG(build, 1, MP_EMIT_BUILD_MAP);
+            if (create_map) {
+                EMIT_ARG(build, 1, MP_EMIT_BUILD_MAP);
+            }
             compile_node(comp, pn);
             EMIT(store_map);
         } else if (MP_PARSE_NODE_STRUCT_KIND(pns) == PN_dictorsetmaker) {
@@ -2474,7 +2500,9 @@ STATIC void compile_atom_brace(compiler_t *comp, mp_parse_node_struct_t *pns) {
                 bool is_dict;
                 if (!MICROPY_PY_BUILTINS_SET || MP_PARSE_NODE_IS_STRUCT_KIND(pns->nodes[0], PN_dictorsetmaker_item)) {
                     // a dictionary
-                    EMIT_ARG(build, 1 + n, MP_EMIT_BUILD_MAP);
+                    if (create_map) {
+                        EMIT_ARG(build, 1 + n, MP_EMIT_BUILD_MAP);
+                    }
                     compile_node(comp, pns->nodes[0]);
                     EMIT(store_map);
                     is_dict = true;
@@ -2542,6 +2570,10 @@ STATIC void compile_atom_brace(compiler_t *comp, mp_parse_node_struct_t *pns) {
         assert(0);
         #endif
     }
+}
+
+STATIC void compile_atom_brace(compiler_t *comp, mp_parse_node_struct_t *pns) {
+    compile_atom_brace_helper(comp, pns, true);
 }
 
 STATIC void compile_trailer_paren(compiler_t *comp, mp_parse_node_struct_t *pns) {
@@ -2769,6 +2801,8 @@ STATIC int compile_viper_type_annotation(compiler_t *comp, mp_parse_node_t pn_an
 #endif
 
 STATIC void compile_scope_func_lambda_param(compiler_t *comp, mp_parse_node_t pn, pn_kind_t pn_name, pn_kind_t pn_star, pn_kind_t pn_dbl_star) {
+    (void)pn_dbl_star;
+
     // check that **kw is last
     if ((comp->scope_cur->scope_flags & MP_SCOPE_FLAG_VARKEYWORDS) != 0) {
         compile_syntax_error(comp, pn, "invalid syntax");
@@ -2932,7 +2966,7 @@ STATIC void check_for_doc_string(compiler_t *comp, mp_parse_node_t pn) {
         if ((MP_PARSE_NODE_IS_LEAF(pns->nodes[0])
                 && MP_PARSE_NODE_LEAF_KIND(pns->nodes[0]) == MP_PARSE_NODE_STRING)
             || (MP_PARSE_NODE_IS_STRUCT_KIND(pns->nodes[0], PN_const_object)
-                && MP_OBJ_IS_STR(get_const_object((mp_parse_node_struct_t*)pns->nodes[0])))) {
+                && mp_obj_is_str(get_const_object((mp_parse_node_struct_t*)pns->nodes[0])))) {
                 // compile the doc string
                 compile_node(comp, pns->nodes[0]);
                 // store the doc string
